@@ -135,7 +135,6 @@ SELECT * FROM Participation;
 DELETE FROM Participation WHERE result < 200;
 SELECT * FROM Participation;
 
---- 
 
 SELECT DISTINCT category FROM Trainers;
 
@@ -152,4 +151,76 @@ SELECT * FROM Sportsmen WHERE flName REGEXP 'Hamilton$';
 SELECT * FROM Sportsmen WHERE birthDate REGEXP '^19';
 SELECT * FROM Sportsmen WHERE birthDate REGEXP '^19.{7}2$';
 SELECT * FROM Trainers WHERE rate REGEXP '^2[2-4].0$';	
-SELECT * FROM Competition WHERE location REGEXP '24 Patricia Terrace|17 Lake Street';	
+SELECT * FROM Competition WHERE location REGEXP '24 Patricia Terrace|17 Lake Street';
+
+
+SELECT AVG(scholarship) AS Average_scholarship 
+FROM Sportsmen
+WHERE rate > 1800;
+
+SELECT SUM(scholarship) FROM Sportsmen;
+
+SELECT MIN(rate), MAX(rate) FROM Trainers;
+
+SELECT COUNT(*) AS numberOfSportsmen 
+FROM Sportsmen;
+
+SELECT COUNT(mobile) FROM Sportsmen;
+
+SELECT rate, COUNT(*) AS highRateCount
+FROM Sportsmen
+WHERE rate > 1700
+GROUP BY rate
+ORDER BY rate DESC;
+
+SELECT rate, COUNT(*) AS highRateCount
+FROM Sportsmen
+WHERE scholarship > 1500
+GROUP BY rate
+HAVING COUNT(*) > 1;
+
+SELECT * FROM Sportsmen
+WHERE EXISTS
+(SELECT * FROM Trainers 
+ WHERE Sportsmen.rate = Trainers.rate);
+
+SELECT id, flName,
+    (SELECT flName FROM Trainers
+     WHERE Trainers.id = Sportsmen.trainer) AS Trainer
+FROM Sportsmen;
+
+SELECT t.id, t.flName,
+    (SELECT COUNT(*) FROM Sportsmen s1
+     WHERE s1.trainer = t.id) AS numberOfSportsmen
+FROM Trainers t;
+
+SELECT * FROM Trainers
+WHERE rate > (SELECT AVG(rate) FROM Trainers);
+
+
+INSERT INTO Sportsmen (flName, birthDate, sex, trainer, address) 
+VALUE ('Jackson Evan Smith', '1987-09-01', 'm', 
+       (SELECT id 
+        FROM Trainers WHERE flName = 'Lena Kiana Maddox'),
+       '7 Main Street');
+SELECT * FROM Sportsmen;
+
+-- Increasing the scholarship by 30% for each Sportsman whose Trainer has a rating above 2200.
+UPDATE Sportsmen
+SET scholarship = scholarship * 1.3
+WHERE trainer IN (SELECT id 
+                  FROM Trainers 
+                  WHERE rate > 2200);
+                  
+SELECT id, flName, trainer, scholarship, rate 
+FROM Sportsmen;
+
+-- Deleting Participation in a contest of a Sportsman whose Trainer has an id = 5. 
+SELECT * FROM Participation;                   
+
+DELETE FROM Participation
+WHERE sportsman IN (SELECT id 
+                   FROM Sportsmen
+                   WHERE trainer = 5);
+
+SELECT * FROM Participation; 
