@@ -1,5 +1,18 @@
 # Sportsclub SQL Project
 
+## Table of contents
+
+- [Sportsclub SQL Project](#sportsclub-sql-project)
+    - [Introduction](#introduction)
+    - [EER Diagram](#eer-diagram)
+    - [The content of our tables](#the-content-of-our-tables)
+    - [Examples of using simple commands](#examples-of-using-simple-commands)
+    - [Using aggregate functions (AVG, SUM, MIN, MAX, COUNT)](#using-aggregate-functions-avg-sum-min-max-count)
+    - [Using operators (GROUP BY, HAVING, EXISTS)](#using-operators-group-by-having-exists)
+    - [Using a correlated subquery](#using-a-correlated-subquery)
+    - [Using a non-correlated subquery](#using-a-non-correlated-subquery)
+    - [Using subqueries in such commands as INSERT, UPDATE, DELETE](#using-subqueries-in-such-commands-as-insert-update-delete)
+
 ### Introduction
 I have created a sportsclub database, which contains four tables: `Trainers`, `Sportsmen`, `Competition`, `Participation`.
 
@@ -55,7 +68,7 @@ Let's take a look at our database's diagram:
 
 ![EER Diagram](https://github.com/arina-korkhova/Sportsclub-SQL-Project/blob/main/EER_Diagram.png)
 
-### Let's take a look at the content of our tables
+### The content of our tables
 ```sql
 SELECT * FROM Trainers;
 ```
@@ -334,8 +347,6 @@ Output:
 +----+-------------+-----------+--------+-------+
 ```
 
-### Construction of the simplest database queries
-
 * **Selecting unique categories from the Trainers table**
 
 ```sql
@@ -558,7 +569,8 @@ Output:
 |  3 | Regional      | 17 Lake Street      | 2022-06-01 |       25 |
 +----+---------------+---------------------+------------+----------+
 ```
-#### Using aggregate functions (AVG, SUM, MIN, MAX, COUNT)
+
+### Using aggregate functions (AVG, SUM, MIN, MAX, COUNT)
 
 * **AVG**
 
@@ -634,7 +646,7 @@ Output:
 +---------------+
 ```
 
-#### Using operators (GROUP BY, HAVING, EXISTS)
+### Using operators (GROUP BY, HAVING, EXISTS)
 
 * **GROUP BY**
 
@@ -697,7 +709,7 @@ WHERE EXISTS
 | 13 | Alexis Tara Larsen | 1990-04-26 | f   | B        |       4 | 2000 |        4030 | 21 Huntington Drive | +380665478810 | 7145409   |
 +----+--------------------+------------+-----+----------+---------+------+-------------+---------------------+---------------+-----------+
 ```
-#### Correlated subquery examples
+### Using a correlated subquery
 
 * **Displaying the full name of the Sportsman and the full name of their Trainer**
 
@@ -751,7 +763,7 @@ Output:
 +------+------------------------+-------------------+
 ```
 
-#### Using a non-correlated subquery
+### Using a non-correlated subquery
 
 * **Displaying the full name of the Trainers with a rating above the average**
 
@@ -770,7 +782,7 @@ Output:
 +----+------------------------+----------+------+
 ```
 
-#### Using subqueries in such commands as INSERT, UPDATE, DELETE 
+### Using subqueries in such commands as INSERT, UPDATE, DELETE 
 
 * **Subquery in `INSERT` command**
 
@@ -902,3 +914,8 @@ Output:
 ```
 
 As we can see, the Sportsman with an id = 3 is now eliminated. 
+
+
+
+<br/>  
+<p align="center"><a href="#sportsclub-sql-project"><img src="https://github.com/arina-korkhova/Sportsclub-SQL-Project/blob/main/images/backToTopButton.png" alt="Back to top" height="29"/></a></p>
