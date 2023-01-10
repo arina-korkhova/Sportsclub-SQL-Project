@@ -224,3 +224,57 @@ WHERE sportsman IN (SELECT id
                    WHERE trainer = 5);
 
 SELECT * FROM Participation; 
+
+
+
+-- implicit joins
+SELECT s.id, s.flName, s.rate, 
+       t.flName AS TrainersName,
+       t.rate AS TrainersRate
+FROM Sportsmen AS s, 
+     Trainers AS t
+WHERE s.trainer = t.id
+ORDER BY s.id;
+
+
+SELECT s.id, s.flName, s.rate, 
+       c.comptype AS CompetitionType, 
+       c.location AS CompetitionLocation,
+       p.result
+FROM Sportsmen AS s, 
+     Competition AS c, 
+     Participation as p
+WHERE s.id = p.sportsman AND p.competition = c.id;
+
+-- inner join
+SELECT s.id, s.flName, p.result 
+FROM Sportsmen AS s
+INNER JOIN Participation AS p 
+ON p.sportsman = s.id AND p.result > 250;
+
+
+SELECT Sportsmen.id, 
+       Sportsmen.flName, 
+       Trainers.flName AS TrainersName,   
+       Participation.result 
+FROM Sportsmen
+INNER JOIN Trainers 
+    ON Trainers.id = Sportsmen.trainer
+INNER JOIN Participation 
+    ON Participation.sportsman = Sportsmen.id;
+
+-- left outer join
+SELECT Sportsmen.id, flName, rate,
+       Participation.competition,
+       Participation.result 
+FROM Sportsmen
+LEFT JOIN Participation 
+          ON Sportsmen.id = Participation.sportsman;
+
+-- right outer join
+SELECT Sportsmen.id, flName, rate,
+       Participation.competition,
+       Participation.result 
+FROM Sportsmen
+RIGHT JOIN Participation 
+           ON Sportsmen.id = Participation.sportsman;
