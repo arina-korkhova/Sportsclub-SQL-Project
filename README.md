@@ -67,7 +67,7 @@ EER diagrams provide a visual representation of the relationships among the tabl
 
 Let's take a look at our database's diagram:
 
-![EER Diagram](https://github.com/arina-korkhova/Sportsclub-SQL-Project/blob/main/EER_Diagram.png)
+![EER Diagram](https://github.com/arina-korkhova/Sportsclub-SQL-Project/blob/main/images/EER_Diagram.png)
 
 ### The content of our tables
 ```sql
