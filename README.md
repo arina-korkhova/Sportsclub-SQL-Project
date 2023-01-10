@@ -12,6 +12,7 @@
     - [Using a correlated subquery](#using-a-correlated-subquery)
     - [Using a non-correlated subquery](#using-a-non-correlated-subquery)
     - [Using subqueries in such commands as INSERT, UPDATE, DELETE](#using-subqueries-in-such-commands-as-insert-update-delete)
+    - [Joining tables in queries (implicit join,  INNER JOIN, LEFT(RIGHT) OUTER JOIN)](#joining-tables-in-queries-implicit-join--inner-join-leftright-outer-join)
 
 ### Introduction
 I have created a sportsclub database, which contains four tables: `Trainers`, `Sportsmen`, `Competition`, `Participation`.
@@ -915,6 +916,167 @@ Output:
 
 As we can see, the Sportsman with an id = 3 is now eliminated. 
 
+### Joining tables in queries (implicit join,  INNER JOIN, LEFT(RIGHT) OUTER JOIN)
+
+* **Implicit join**
+
+Joining *two* tables. 
+
+```sql
+SELECT s.id, s.flName, s.rate, 
+       t.flName AS TrainersName,
+       t.rate AS TrainersRate
+FROM Sportsmen AS s, 
+     Trainers AS t
+WHERE s.trainer = t.id
+ORDER BY s.id;
+```
+Output:
+```
++----+-------------------------+------+------------------------+--------------+
+| id | flName                  | rate | TrainersName           | TrainersRate |
++----+-------------------------+------+------------------------+--------------+
+|  1 | Dominick Tom Jameson    | 1700 | Violet Elle Woods      |         2100 |
+|  2 | Steven Jack Ball        | 1900 | Max Dean Bailey        |         2300 |
+|  3 | Ross Max Booth          | 1500 | Lena Kiana Maddox      |         2050 |
+|  4 | Richard Frank Jones     | 1600 | Savannah Marie Mathews |         2399 |
+|  5 | Kathleen Anne Hamilton  | 1550 | Luke James Hooper      |         2000 |
+|  6 | Susan Jane Morris       | 1650 | Luke James Hooper      |         2000 |
+|  7 | Kimberly Maria Perez    | 1800 | Lola Jane Keith        |         2350 |
+|  8 | Melissa Kira Pittman    | 1900 | Max Dean Bailey        |         2300 |
+|  9 | Richard Thomas Anderson | 1999 | Lola Jane Keith        |         2350 |
+| 10 | Samantha Beth Hamilton  | 1690 | Violet Elle Woods      |         2100 |
+| 11 | Vincent Justin Maxwell  | 1550 | Savannah Marie Mathews |         2399 |
+| 12 | Rebecca Lauren Williams | 1520 | Max Dean Bailey        |         2300 |
+| 13 | Alexis Tara Larsen      | 2000 | Savannah Marie Mathews |         2399 |
+| 14 | David Michael Harrison  | 1430 | Max Dean Bailey        |         2300 |
+| 15 | Jackson Evan Smith      | NULL | Lena Kiana Maddox      |         2050 |
++----+-------------------------+------+------------------------+--------------+
+```
+
+Joining *three* tables.
+
+```sql
+SELECT s.id, s.flName, s.rate, 
+       c.comptype AS CompetitionType, 
+       c.location AS CompetitionLocation,
+       p.result
+FROM Sportsmen AS s, 
+     Competition AS c, 
+     Participation as p
+WHERE s.id = p.sportsman AND p.competition = c.id;
+```
+Output:
+```
++----+-------------------------+------+-----------------+---------------------+--------+
+| id | flName                  | rate | CompetitionType | CompetitionLocation | result |
++----+-------------------------+------+-----------------+---------------------+--------+
+|  1 | Dominick Tom Jameson    | 1700 | International   | 24 Patricia Terrace |    300 |
+|  5 | Kathleen Anne Hamilton  | 1550 | National        | 24 Patricia Terrace |    200 |
+|  6 | Susan Jane Morris       | 1650 | National        | 24 Patricia Terrace |    330 |
+|  9 | Richard Thomas Anderson | 1999 | Regional        | 17 Lake Street      |    200 |
++----+-------------------------+------+-----------------+---------------------+--------+
+```
+
+* **INNER JOIN**
+
+Joining *two* tables. 
+
+```sql
+SELECT s.id, s.flName, p.result 
+FROM Sportsmen AS s
+INNER JOIN Participation AS p 
+ON p.sportsman = s.id AND p.result > 250;
+```
+Output:
+```
++----+----------------------+--------+
+| id | flName               | result |
++----+----------------------+--------+
+|  1 | Dominick Tom Jameson |    300 |
+|  6 | Susan Jane Morris    |    330 |
++----+----------------------+--------+
+```
+
+Joining *three* tables.
+
+```sql=
+SELECT Sportsmen.id, 
+       Sportsmen.flName, 
+       Trainers.flName AS TrainersName,   
+       Participation.result 
+FROM Sportsmen
+INNER JOIN Trainers 
+    ON Trainers.id = Sportsmen.trainer
+INNER JOIN Participation 
+    ON Participation.sportsman = Sportsmen.id;
+```
+Output:
+```
++----+-------------------------+-------------------+--------+
+| id | flName                  | TrainersName      | result |
++----+-------------------------+-------------------+--------+
+|  1 | Dominick Tom Jameson    | Violet Elle Woods |    300 |
+|  5 | Kathleen Anne Hamilton  | Luke James Hooper |    200 |
+|  6 | Susan Jane Morris       | Luke James Hooper |    330 |
+|  9 | Richard Thomas Anderson | Lola Jane Keith   |    200 |
++----+-------------------------+-------------------+--------+
+```
+
+* **LEFT OUTER JOIN**
+
+```sql=
+SELECT Sportsmen.id, flName, rate,
+       Participation.competition,
+       Participation.result 
+FROM Sportsmen
+LEFT JOIN Participation 
+          ON Sportsmen.id = Participation.sportsman;
+```
+Output:
+```
++----+-------------------------+------+-------------+--------+
+| id | flName                  | rate | competition | result |
++----+-------------------------+------+-------------+--------+
+|  1 | Dominick Tom Jameson    | 1700 |           1 |    300 |
+|  2 | Steven Jack Ball        | 1900 |        NULL |   NULL |
+|  3 | Ross Max Booth          | 1500 |        NULL |   NULL |
+|  4 | Richard Frank Jones     | 1600 |        NULL |   NULL |
+|  5 | Kathleen Anne Hamilton  | 1550 |           2 |    200 |
+|  6 | Susan Jane Morris       | 1650 |           2 |    330 |
+|  7 | Kimberly Maria Perez    | 1800 |        NULL |   NULL |
+|  8 | Melissa Kira Pittman    | 1900 |        NULL |   NULL |
+|  9 | Richard Thomas Anderson | 1999 |           3 |    200 |
+| 10 | Samantha Beth Hamilton  | 1690 |        NULL |   NULL |
+| 11 | Vincent Justin Maxwell  | 1550 |        NULL |   NULL |
+| 12 | Rebecca Lauren Williams | 1520 |        NULL |   NULL |
+| 13 | Alexis Tara Larsen      | 2000 |        NULL |   NULL |
+| 14 | David Michael Harrison  | 1430 |        NULL |   NULL |
+| 15 | Jackson Evan Smith      | NULL |        NULL |   NULL |
++----+-------------------------+------+-------------+--------+
+```
+
+* **RIGHT OUTER JOIN**
+
+```sql=
+SELECT Sportsmen.id, flName, rate,
+       Participation.competition,
+       Participation.result 
+FROM Sportsmen
+RIGHT JOIN Participation 
+           ON Sportsmen.id = Participation.sportsman;
+```
+Output:
+```
++------+-------------------------+------+-------------+--------+
+| id   | flName                  | rate | competition | result |
++------+-------------------------+------+-------------+--------+
+|    1 | Dominick Tom Jameson    | 1700 |           1 |    300 |
+|    5 | Kathleen Anne Hamilton  | 1550 |           2 |    200 |
+|    6 | Susan Jane Morris       | 1650 |           2 |    330 |
+|    9 | Richard Thomas Anderson | 1999 |           3 |    200 |
++------+-------------------------+------+-------------+--------+
+```
 
 
 <br/>  
