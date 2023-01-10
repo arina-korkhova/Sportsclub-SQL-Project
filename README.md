@@ -224,7 +224,7 @@ Output:
 
 
 * **Deleting a table column, adding constraints to the table**
-```sql=
+```sql
 ALTER TABLE Competition DROP COLUMN starttime;
 ALTER TABLE Competition 
 ADD CONSTRAINT chk_agelimit CHECK(agelimit > 0 AND agelimit < 100);
@@ -1000,7 +1000,7 @@ Output:
 
 Joining *three* tables.
 
-```sql=
+```sql
 SELECT Sportsmen.id, 
        Sportsmen.flName, 
        Trainers.flName AS TrainersName,   
@@ -1025,7 +1025,7 @@ Output:
 
 * **LEFT OUTER JOIN**
 
-```sql=
+```sql
 SELECT Sportsmen.id, flName, rate,
        Participation.competition,
        Participation.result 
@@ -1058,7 +1058,7 @@ Output:
 
 * **RIGHT OUTER JOIN**
 
-```sql=
+```sql
 SELECT Sportsmen.id, flName, rate,
        Participation.competition,
        Participation.result 
