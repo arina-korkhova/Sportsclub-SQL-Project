@@ -69,7 +69,7 @@ INSERT INTO Sportsmen (flName, birthDate, sex, category, trainer, rate, scholars
 	('Ross Max Booth', '1998-03-02', 'm', 'E', 5, 1500, 0, '992 Lempi Creek', NULL, NULL),
 	('Richard Frank Jones', '1989-01-07', 'm', 'D', 4, 1600, 0, '33 Crestview Road', '+380509801433', '7095240'),
 	('Kathleen Anne Hamilton', '1999-05-29', 'f', 'E', 6, 1550, 1400, '31 Holly Road', '+380675207119', NULL),
-	('Susan Jane Morris', '2000-10-31', 'm', 'D', 6, 1650, 1800, '28 Settlement Avenue', NULL, '7196483'),
+	('Susan Jane Morris', '2000-10-31', 'f', 'D', 6, 1650, 1800, '28 Settlement Avenue', NULL, '7196483'),
 	('Kimberly Maria Perez', '1998-09-07', 'f', 'C', 3, 1800, 1900, '32 Willamette Avenue', '+380507890049', '7198825'),
 	('Melissa Kira Pittman', '1994-03-13', 'f', 'C', 2, 1900, 1450, '17 Claremont Avenue', '+380665430876', NULL),
 	('Richard Thomas Anderson', '1996-11-28', 'm', 'C', 3, 1999, 2000, '21 Croix Trail', '+380958763144', NULL),
@@ -278,3 +278,75 @@ SELECT Sportsmen.id, flName, rate,
 FROM Sportsmen
 RIGHT JOIN Participation 
            ON Sportsmen.id = Participation.sportsman;
+
+-- many-to-many relationship 
+
+SELECT p.id AS ParticipationId, 
+       s.flName AS Sportsman, 
+       c.compType AS CompetitionType
+FROM Sportsmen AS s, 
+     Competition AS c, 
+     Participation AS p
+WHERE s.id = p.sportsman
+  AND p.competition = c.id;
+
+
+SELECT p.id AS ParticipationId, 
+       s.flName AS Sportsman, 
+       c.compType AS CompetitionType, 
+       p.result
+FROM Sportsmen AS s, Competition AS c, Participation AS p
+WHERE s.id = p.sportsman 
+  AND p.competition = c.id
+  AND p.result > 250;
+  
+
+SELECT p.id AS ParticipationId, 
+       s.flName AS Sportsman, 
+       c.compType AS CompetitionType, 
+       p.result
+FROM Sportsmen AS s, Competition AS c, Participation AS p
+WHERE s.id = p.sportsman
+  AND p.competition = c.id
+  AND s.sex = 'f'
+ORDER BY s.flName;
+
+
+SELECT p.id AS ParticipationId, 
+       s.flName AS Sportsman, 
+       c.compType AS CompetitionType, 
+       p.result
+FROM Sportsmen AS s, Competition AS c, Participation AS p
+WHERE s.id = p.sportsman
+  AND p.competition = c.id
+  AND s.birthdate LIKE '1996-%'
+ORDER BY s.flName;
+
+
+SELECT p.id AS ParticipationId, 
+       s.flName AS Sportsman, 
+       t.flName AS Trainer, 
+       c.compType AS CompetitionType, 
+       p.result
+FROM Sportsmen AS s, Competition AS c, Participation AS p, Trainers AS t
+WHERE s.id = p.sportsman
+  AND p.competition = c.id 
+  AND s.trainer = t.id
+  AND p.result BETWEEN 200 AND 300
+ORDER BY p.result;
+
+
+SELECT p.id AS ParticipationId, 
+       s.flName AS Sportsman, 
+       t.flName AS Trainer, 
+       c.compType AS CompetitionType, 
+       p.result
+FROM Participation AS p
+INNER JOIN Competition AS c 
+        ON p.competition = c.id 
+        AND p.result BETWEEN 200 AND 300
+INNER JOIN Sportsmen AS s 
+        ON s.id = p.sportsman
+INNER JOIN Trainers AS t 
+        ON s.trainer = t.id
+ORDER BY p.result;
