@@ -13,6 +13,7 @@
     - [Using a non-correlated subquery](#using-a-non-correlated-subquery)
     - [Using subqueries in such commands as INSERT, UPDATE, DELETE](#using-subqueries-in-such-commands-as-insert-update-delete)
     - [Joining tables in queries (implicit join,  INNER JOIN, LEFT(RIGHT) OUTER JOIN)](#joining-tables-in-queries-implicit-join--inner-join-leftright-outer-join)
+    - [Many-to-many relationship](#many-to-many-relationship)
 
 ### Introduction
 I have created a sportsclub database, which contains four tables: `Trainers`, `Sportsmen`, `Competition`, `Participation`.
@@ -67,7 +68,7 @@ EER diagrams provide a visual representation of the relationships among the tabl
 
 Let's take a look at our database's diagram:
 
-![EER Diagram](https://github.com/arina-korkhova/Sportsclub-SQL-Project/blob/main/EER_Diagram.png)
+![EER Diagram](https://github.com/arina-korkhova/Sportsclub-SQL-Project/blob/main/images/EER_Diagram.png)
 
 ### The content of our tables
 ```sql
@@ -1077,6 +1078,163 @@ Output:
 |    9 | Richard Thomas Anderson | 1999 |           3 |    200 |
 +------+-------------------------+------+-------------+--------+
 ```
+
+
+### Many-to-many relationship
+
+A many-to-many relationship occurs when multiple records in one table are related to multiple records in another table.
+
+I have many-to-many relationship among tables in my database. This is the Competition table and the Sportsmen table, interconnected with an additional Participation table. 
+
+* Let's display all Participations: full name of the participant and type of competition
+
+```sql
+SELECT p.id AS ParticipationId, 
+       s.flName AS Sportsman, 
+       c.compType AS CompetitionType
+FROM Sportsmen AS s, 
+     Competition AS c, 
+     Participation AS p
+WHERE s.id = p.sportsman
+  AND p.competition = c.id;
+```
+Output:
+```
++-----------------+-------------------------+-----------------+
+| ParticipationId | Sportsman               | CompetitionType |
++-----------------+-------------------------+-----------------+
+|               1 | Dominick Tom Jameson    | International   |
+|               5 | Kathleen Anne Hamilton  | National        |
+|               6 | Susan Jane Morris       | National        |
+|               9 | Richard Thomas Anderson | Regional        |
++-----------------+-------------------------+-----------------+
+```
+
+* **Let's display all Participations (participant's full name, type of competition, result), where the result is higher than 250.**
+
+```sql
+SELECT p.id AS ParticipationId, 
+       s.flName AS Sportsman, 
+       c.compType AS CompetitionType, 
+       p.result
+FROM Sportsmen AS s, Competition AS c, Participation AS p
+WHERE s.id = p.sportsman 
+  AND p.competition = c.id
+  AND p.result > 250;
+```
+Output:
+```
++-----------------+----------------------+-----------------+--------+
+| ParticipationId | Sportsman            | CompetitionType | result |
++-----------------+----------------------+-----------------+--------+
+|               1 | Dominick Tom Jameson | International   |    300 |
+|               6 | Susan Jane Morris    | National        |    330 |
++-----------------+----------------------+-----------------+--------+
+```
+
+* **Let's display all the Participations (participant's full name, type of competition, result), where the female athletes are in alphabetical order of names.**
+
+```sql
+SELECT p.id AS ParticipationId, 
+       s.flName AS Sportsman, 
+       c.compType AS CompetitionType, 
+       p.result
+FROM Sportsmen AS s, Competition AS c, Participation AS p
+WHERE s.id = p.sportsman
+  AND p.competition = c.id
+  AND s.sex = 'f'
+ORDER BY s.flName;
+```
+Output:
+```
++-----------------+------------------------+-----------------+--------+
+| ParticipationId | Sportsman              | CompetitionType | result |
++-----------------+------------------------+-----------------+--------+
+|               5 | Kathleen Anne Hamilton | National        |    200 |
+|               6 | Susan Jane Morris      | National        |    330 |
++-----------------+------------------------+-----------------+--------+
+```
+
+* **Let's display all the Participations (participant's full name, type of competition, result), where the athlete was born in 1996 in alphabetical order of names**
+
+```sql
+SELECT p.id AS ParticipationId, 
+       s.flName AS Sportsman, 
+       c.compType AS CompetitionType, 
+       p.result
+FROM Sportsmen AS s, Competition AS c, Participation AS p
+WHERE s.id = p.sportsman
+  AND p.competition = c.id
+  AND s.birthdate LIKE '1996-%'
+ORDER BY s.flName;
+```
+Output:
+```
++-----------------+-------------------------+-----------------+--------+
+| ParticipationId | Sportsman               | CompetitionType | result |
++-----------------+-------------------------+-----------------+--------+
+|               1 | Dominick Tom Jameson    | International   |    300 |
+|               9 | Richard Thomas Anderson | Regional        |    200 |
++-----------------+-------------------------+-----------------+--------+
+```
+
+* **Let's select all Participations (participant's name, competition type, result), where the result is between 200 and 300 in ascending order of the result**
+
+```sql
+SELECT p.id AS ParticipationId, 
+       s.flName AS Sportsman, 
+       t.flName AS Trainer, 
+       c.compType AS CompetitionType, 
+       p.result
+FROM Sportsmen AS s, Competition AS c, Participation AS p, Trainers AS t
+WHERE s.id = p.sportsman
+  AND p.competition = c.id 
+  AND s.trainer = t.id
+  AND p.result BETWEEN 200 AND 300
+ORDER BY p.result;
+```
+Output:
+```
++-----------------+-------------------------+-------------------+-----------------+--------+
+| ParticipationId | Sportsman               | Trainer           | CompetitionType | result |
++-----------------+-------------------------+-------------------+-----------------+--------+
+|               5 | Kathleen Anne Hamilton  | Luke James Hooper | National        |    200 |
+|               9 | Richard Thomas Anderson | Lola Jane Keith   | Regional        |    200 |
+|               3 | Ross Max Booth          | Lena Kiana Maddox | International   |    270 |
+|               1 | Dominick Tom Jameson    | Violet Elle Woods | International   |    300 |
++-----------------+-------------------------+-------------------+-----------------+--------+
+```
+
+* **Alternative option with INNER JOIN**
+
+```sql
+SELECT p.id AS ParticipationId, 
+       s.flName AS Sportsman, 
+       t.flName AS Trainer, 
+       c.compType AS CompetitionType, 
+       p.result
+FROM Participation AS p
+INNER JOIN Competition AS c 
+        ON p.competition = c.id 
+        AND p.result BETWEEN 200 AND 300
+INNER JOIN Sportsmen AS s 
+        ON s.id = p.sportsman
+INNER JOIN Trainers AS t 
+        ON s.trainer = t.id
+ORDER BY p.result;
+```
+Output:
+```
++-----------------+-------------------------+-------------------+-----------------+--------+
+| ParticipationId | Sportsman               | Trainer           | CompetitionType | result |
++-----------------+-------------------------+-------------------+-----------------+--------+
+|               5 | Kathleen Anne Hamilton  | Luke James Hooper | National        |    200 |
+|               9 | Richard Thomas Anderson | Lola Jane Keith   | Regional        |    200 |
+|               3 | Ross Max Booth          | Lena Kiana Maddox | International   |    270 |
+|               1 | Dominick Tom Jameson    | Violet Elle Woods | International   |    300 |
++-----------------+-------------------------+-------------------+-----------------+--------+
+```
+
 
 
 <br/>  
