@@ -6,28 +6,28 @@ USE sportsclub;
 
 CREATE TABLE IF NOT EXISTS Trainers
 (
-	id 			INT AUTO_INCREMENT PRIMARY KEY,
-	flName 		VARCHAR(40) NOT NULL,
-	category 	CHAR(1),
-					CHECK (category = 'A' OR category = 'B' OR category = 'C' OR category = 'D' OR category = 'E' OR NULL),
-	rate 		INT
+	id INT AUTO_INCREMENT PRIMARY KEY,
+	flName VARCHAR(40) NOT NULL,
+	category CHAR(1),
+             CHECK (category = 'A' OR category = 'B' OR category = 'C' OR category = 'D' OR category = 'E' OR NULL),
+	rate INT
 );
 
 CREATE TABLE IF NOT EXISTS Sportsmen
 (
-	id 			INT AUTO_INCREMENT PRIMARY KEY,
-	flName 		VARCHAR(40) NOT NULL,
-	birthDate 	DATE NOT NULL, 
-	sex 		CHAR(1) NOT NULL DEFAULT 'm',
-					CHECK (sex = 'm' OR sex = 'f'),
-	category 	CHAR(1),
-					CHECK (category = 'A' OR category = 'B' OR category = 'C' OR category = 'D' OR category = 'E' OR NULL),
-	trainer 	INT NOT NULL,	
-	rate 		INT,
+	id INT AUTO_INCREMENT PRIMARY KEY,
+	flName VARCHAR(40) NOT NULL,
+	birthDate DATE NOT NULL, 
+	sex CHAR(1) NOT NULL DEFAULT 'm',
+	    CHECK (sex = 'm' OR sex = 'f'),
+	category CHAR(1),
+		     CHECK (category = 'A' OR category = 'B' OR category = 'C' OR category = 'D' OR category = 'E' OR NULL),
+	trainer INT NOT NULL,	
+	rate INT,
 	scholarship INT DEFAULT 0, 
-	address 	VARCHAR(40) NOT NULL,
-	mobile 		VARCHAR(13) NULL,  
-	homephone 	VARCHAR(7) NULL,
+	address VARCHAR(40) NOT NULL,
+	mobile VARCHAR(13) NULL,  
+	homephone VARCHAR(7) NULL,
 	UNIQUE (mobile, homephone), 
     CONSTRAINT sportsmen_trainer_fk
     FOREIGN KEY (trainer) REFERENCES Trainers(id)
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS Sportsmen
 
 CREATE TABLE IF NOT EXISTS Competition
 (
-	id 		 INT AUTO_INCREMENT PRIMARY KEY,
+	id INT AUTO_INCREMENT PRIMARY KEY,
 	comptype VARCHAR(40), 
 	location VARCHAR(40),
 	compdate DATE,
@@ -44,11 +44,11 @@ CREATE TABLE IF NOT EXISTS Competition
 
 CREATE TABLE IF NOT EXISTS Participation
 (
-	id 			INT AUTO_INCREMENT PRIMARY KEY,
+	id INT AUTO_INCREMENT PRIMARY KEY,
 	competition INT,	
-	sportsman 	INT,	
-	result 		INT,
-	place 		INT,
+	sportsman INT,	
+	result INT,
+	place INT,
 	FOREIGN KEY (sportsman) REFERENCES Sportsmen(id),
 	FOREIGN KEY (competition) REFERENCES Competition(id)	
 );
@@ -228,11 +228,8 @@ SELECT * FROM Participation;
 
 
 -- implicit joins
-SELECT s.id, s.flName, s.rate, 
-       t.flName AS TrainersName,
-       t.rate AS TrainersRate
-FROM Sportsmen AS s, 
-     Trainers AS t
+SELECT s.id, s.flName, s.rate, t.flName AS TrainersName, t.rate AS TrainersRate
+FROM Sportsmen AS s, Trainers AS t
 WHERE s.trainer = t.id
 ORDER BY s.id;
 
@@ -350,3 +347,28 @@ INNER JOIN Sportsmen AS s
 INNER JOIN Trainers AS t 
         ON s.trainer = t.id
 ORDER BY p.result;
+
+
+-- view
+
+CREATE VIEW v_name_comp (Name, Competition, Result) AS
+SELECT Sportsmen.flName, Competition.compType, result
+FROM Participation
+JOIN Sportsmen ON Sportsmen.id = Participation.sportsman
+JOIN Competition ON Competition.id = Participation.competition;
+
+SELECT * FROM v_name_comp;
+
+
+UPDATE v_name_comp
+SET Result = 99
+WHERE Result < 299;
+
+SELECT * FROM v_name_comp;
+
+SELECT Sportsmen.flName, Competition.compType, result
+FROM Participation
+JOIN Sportsmen ON Sportsmen.id = Participation.sportsman
+JOIN Competition ON Competition.id = Participation.competition;
+
+EXPLAIN SELECT * FROM v_name_comp;
