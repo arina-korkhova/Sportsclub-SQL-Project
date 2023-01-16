@@ -14,6 +14,7 @@
     - [Using subqueries in such commands as INSERT, UPDATE, DELETE](#using-subqueries-in-such-commands-as-insert-update-delete)
     - [Joining tables in queries (implicit join,  INNER JOIN, LEFT(RIGHT) OUTER JOIN)](#joining-tables-in-queries-implicit-join--inner-join-leftright-outer-join)
     - [Many-to-many relationship](#many-to-many-relationship)
+    - [Implementation of the external level of database display using VIEW](#implementation-of-the-external-level-of-database-display-using-view)
 
 ### Introduction
 I have created a sportsclub database, which contains four tables: `Trainers`, `Sportsmen`, `Competition`, `Participation`.
@@ -225,11 +226,10 @@ Output:
 
 
 * **Deleting a table column, adding constraints to the table**
-```sql
+```sql=
 ALTER TABLE Competition DROP COLUMN starttime;
 ALTER TABLE Competition 
 ADD CONSTRAINT chk_agelimit CHECK(agelimit > 0 AND agelimit < 100);
-
 INSERT INTO Competition (comptype, location, compdate, agelimit) 
 VALUES ('International', '11 Laura Street', '2021-10-30', 180);
 ```
@@ -244,10 +244,8 @@ As expected, we get an error because the age of 180 is beyond an allowed range (
 
 ```sql
 ALTER TABLE Competition DROP CONSTRAINT chk_agelimit;
-
 INSERT INTO Competition (comptype, location, compdate, agelimit) 
 VALUES ('International', '11 Laura Street', '2021-10-30', 180);
-
 SELECT * FROM Competition;
 ```
 Output:
@@ -608,7 +606,6 @@ Output:
 
 ```sql
 SELECT MIN(rate), MAX(rate) FROM Trainers;
-
 ```
 Output:
 ```
@@ -794,7 +791,6 @@ VALUE ('Jackson Evan Smith', '1987-09-01', 'm',
        (SELECT id 
         FROM Trainers WHERE flName = 'Lena Kiana Maddox'),
        '7 Main Street');
-
 SELECT * FROM Sportsmen;
 ```
 Output:
@@ -1001,7 +997,7 @@ Output:
 
 Joining *three* tables.
 
-```sql
+```sql=
 SELECT Sportsmen.id, 
        Sportsmen.flName, 
        Trainers.flName AS TrainersName,   
@@ -1026,7 +1022,7 @@ Output:
 
 * **LEFT OUTER JOIN**
 
-```sql
+```sql=
 SELECT Sportsmen.id, flName, rate,
        Participation.competition,
        Participation.result 
@@ -1059,7 +1055,7 @@ Output:
 
 * **RIGHT OUTER JOIN**
 
-```sql
+```sql=
 SELECT Sportsmen.id, flName, rate,
        Participation.competition,
        Participation.result 
@@ -1078,7 +1074,6 @@ Output:
 |    9 | Richard Thomas Anderson | 1999 |           3 |    200 |
 +------+-------------------------+------+-------------+--------+
 ```
-
 
 ### Many-to-many relationship
 
@@ -1235,6 +1230,103 @@ Output:
 +-----------------+-------------------------+-------------------+-----------------+--------+
 ```
 
+### Implementation of the external level of database display using VIEW
+
+Let's create a view that includes the names of the athletes from the Sportsmen table, the names of the competitions from the Competition table, and the result from the Participation table.
+
+Let's call the view `v_name_comp`:
+
+```sql
+CREATE VIEW v_name_comp (Name, Competition, Result) AS
+SELECT Sportsmen.flName, Competition.compType, result
+FROM Participation
+JOIN Sportsmen ON Sportsmen.id = Participation.sportsman
+JOIN Competition ON Competition.id = Participation.competition;
+```
+
+Let's take a look at the result:
+```sql
+SELECT * FROM v_name_comp;
+```
+Output:
+```
++-------------------------+---------------+--------+
+| Name                    | Competition   | Result |
++-------------------------+---------------+--------+
+| Dominick Tom Jameson    | International |    300 |
+| Ross Max Booth          | International |    270 |
+| Kathleen Anne Hamilton  | National      |    200 |
+| Susan Jane Morris       | National      |    330 |
+| Richard Thomas Anderson | Regional      |    200 |
++-------------------------+---------------+--------+
+```
+
+Let's show that the view is updatable.
+
+```sql
+UPDATE v_name_comp
+SET Result = 99
+WHERE Result < 299;
+```
+Output:
+```
+Query OK, 3 rows affected (0.02 sec)
+Rows matched: 3  Changed: 3  Warnings: 0
+```
+
+```sql
+SELECT * FROM v_name_comp;
+```
+Output:
+```
++-------------------------+---------------+--------+
+| Name                    | Competition   | Result |
++-------------------------+---------------+--------+
+| Dominick Tom Jameson    | International |    300 |
+| Ross Max Booth          | International |     99 |
+| Kathleen Anne Hamilton  | National      |     99 |
+| Susan Jane Morris       | National      |    330 |
+| Richard Thomas Anderson | Regional      |     99 |
++-------------------------+---------------+--------+
+```
+
+Let's check if the values in the source table have changed. 
+
+```sql
+SELECT Sportsmen.flName, Competition.compType, result
+FROM Participation
+JOIN Sportsmen ON Sportsmen.id = Participation.sportsman
+JOIN Competition ON Competition.id = Participation.competition;
+```
+Output:
+```
++-------------------------+---------------+--------+
+| flName                  | compType      | result |
++-------------------------+---------------+--------+
+| Dominick Tom Jameson    | International |    300 |
+| Ross Max Booth          | International |     99 |
+| Kathleen Anne Hamilton  | National      |     99 |
+| Susan Jane Morris       | National      |    330 |
+| Richard Thomas Anderson | Regional      |     99 |
++-------------------------+---------------+--------+
+```
+
+As we can see, in the original table, the results match the results from the v_name_comp view.
+
+Let's check how the query is executed using the EXPLAIN statement.
+```sql
+EXPLAIN SELECT * FROM v_name_comp;
+```
+Output:
+```
++----+-------------+---------------+------------+--------+-----------------------+---------+---------+--------------------------------------+------+----------+-------------+
+| id | select_type | table         | partitions | type   | possible_keys         | key     | key_len | ref                                  | rows | filtered | Extra       |
++----+-------------+---------------+------------+--------+-----------------------+---------+---------+--------------------------------------+------+----------+-------------+
+|  1 | SIMPLE      | participation | NULL       | ALL    | sportsman,competition | NULL    | NULL    | NULL                                 |    5 |   100.00 | Using where |
+|  1 | SIMPLE      | competition   | NULL       | eq_ref | PRIMARY               | PRIMARY | 4       | sportsclub.participation.competition |    1 |   100.00 | NULL        |
+|  1 | SIMPLE      | sportsmen     | NULL       | eq_ref | PRIMARY               | PRIMARY | 4       | sportsclub.participation.sportsman   |    1 |   100.00 | NULL        |
++----+-------------+---------------+------------+--------+-----------------------+---------+---------+--------------------------------------+------+----------+-------------+
+```
 
 
 <br/>  
