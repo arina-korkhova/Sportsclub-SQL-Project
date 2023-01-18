@@ -15,6 +15,7 @@
     - [Joining tables in queries (implicit join,  INNER JOIN, LEFT(RIGHT) OUTER JOIN)](#joining-tables-in-queries-implicit-join--inner-join-leftright-outer-join)
     - [Many-to-many relationship](#many-to-many-relationship)
     - [Implementation of the external level of database display using VIEW](#implementation-of-the-external-level-of-database-display-using-view)
+    - [Window functions](#window-functions)
 
 ### Introduction
 I have created a sportsclub database, which contains four tables: `Trainers`, `Sportsmen`, `Competition`, `Participation`.
@@ -1327,6 +1328,262 @@ Output:
 |  1 | SIMPLE      | sportsmen     | NULL       | eq_ref | PRIMARY               | PRIMARY | 4       | sportsclub.participation.sportsman   |    1 |   100.00 | NULL        |
 +----+-------------+---------------+------------+--------+-----------------------+---------+---------+--------------------------------------+------+----------+-------------+
 ```
+
+### Window functions
+Per the [PostgresSQL documentation](https://www.postgresql.org/docs/current/tutorial-window.html):
+
+> A window function performs a calculation across a set of table rows that are somehow related to the current row… Behind the scenes, the window function is able to access more than just the current row of the query result
+
+First, let's add some more data to Participation table to see results more clearly. 
+
+```sql
+INSERT INTO Participation (competition, sportsman, result, place) VALUES 
+	(1, 11, 300, 1),
+	(1, 12, 100, NULL),
+	(2, 13, 200, 2),
+	(2, 14, 330, 1),
+	(2, 11, 100, 3),
+	(3, 12, 150, 2),
+	(3, 13, 200, 1),
+	(4, 14, 70, NULL);
+
+SELECT * FROM Participation;
+```
+Output:
+```
++----+-------------+-----------+--------+-------+
+| id | competition | sportsman | result | place |
++----+-------------+-----------+--------+-------+
+|  1 |           1 |         1 |    300 |     1 |
+|  3 |           1 |         3 |     99 |     2 |
+|  5 |           2 |         5 |     99 |     2 |
+|  6 |           2 |         6 |    330 |     1 |
+|  9 |           3 |         9 |     99 |     1 |
+| 11 |           1 |        11 |    300 |     1 |
+| 12 |           1 |        12 |    100 |  NULL |
+| 13 |           2 |        13 |    200 |     2 |
+| 14 |           2 |        14 |    330 |     1 |
+| 15 |           2 |        11 |    100 |     3 |
+| 16 |           3 |        12 |    150 |     2 |
+| 17 |           3 |        13 |    200 |     1 |
+| 18 |           4 |        14 |     70 |  NULL |
++----+-------------+-----------+--------+-------+
+13 rows in set (0.00 sec)
+```
+
+* **OVER() with PARTITION BY clause**
+
+Let's select the number of competitions in which each athlete participated.
+
+```sql
+SELECT competition, sportsman, result,
+    COUNT(competition) OVER(PARTITION BY sportsman) AS 'CompAmount'
+FROM Participation;
+```
+Output:
+```
++-------------+-----------+--------+------------+
+| competition | sportsman | result | CompAmount |
++-------------+-----------+--------+------------+
+|           1 |         1 |    300 |          1 |
+|           1 |         3 |     99 |          1 |
+|           2 |         5 |     99 |          1 |
+|           2 |         6 |    330 |          1 |
+|           3 |         9 |     99 |          1 |
+|           1 |        11 |    300 |          2 |
+|           2 |        11 |    100 |          2 |
+|           1 |        12 |    100 |          2 |
+|           3 |        12 |    150 |          2 |
+|           2 |        13 |    200 |          2 |
+|           3 |        13 |    200 |          2 |
+|           2 |        14 |    330 |          2 |
+|           4 |        14 |     70 |          2 |
++-------------+-----------+--------+------------+
+```
+
+Let's display this information in a more visual form, using the `v_name_comp` view that has been created in the previous paragraph.
+
+```sql
+SELECT *,
+       COUNT(Competition) OVER(PARTITION BY Name) AS 'CompAmount'
+FROM v_name_comp;
+```
+Output:
+```
++-------------------------+---------------+--------+------------+
+| Name                    | Competition   | Result | CompAmount |
++-------------------------+---------------+--------+------------+
+| Alexis Tara Larsen      | National      |    200 |          2 |
+| Alexis Tara Larsen      | Regional      |    200 |          2 |
+| David Michael Harrison  | National      |    330 |          2 |
+| David Michael Harrison  | Local         |     70 |          2 |
+| Dominick Tom Jameson    | International |    300 |          1 |
+| Kathleen Anne Hamilton  | National      |     99 |          1 |
+| Rebecca Lauren Williams | International |    100 |          2 |
+| Rebecca Lauren Williams | Regional      |    150 |          2 |
+| Richard Thomas Anderson | Regional      |     99 |          1 |
+| Ross Max Booth          | International |     99 |          1 |
+| Susan Jane Morris       | National      |    330 |          1 |
+| Vincent Justin Maxwell  | International |    300 |          2 |
+| Vincent Justin Maxwell  | National      |    100 |          2 |
++-------------------------+---------------+--------+------------+
+```
+
+* **Aggregate functions**
+
+
+```sql
+SELECT  flName, Competition.compType, result,
+	SUM(result) OVER(PARTITION BY flName) AS 'ResultsSum',
+	COUNT(Competition.compType) OVER(PARTITION BY sportsman) AS 'CompCount',
+	AVG(result) OVER(PARTITION BY compType) AS 'AvgResultInComp',
+	MAX(result) OVER(PARTITION BY flName) AS 'MaxResult',
+	MIN(result) OVER(PARTITION BY flName) AS 'MinResult'
+FROM Participation
+JOIN Sportsmen ON Sportsmen.id = Participation.sportsman
+JOIN Competition ON Competition.id = Participation.competition
+ORDER BY flName;
+```
+Output:
+```
++-------------------------+---------------+--------+------------+-----------+-----------------+-----------+-----------+
+| flName                  | compType      | result | ResultsSum | CompCount | AvgResultInComp | MaxResult | MinResult |
++-------------------------+---------------+--------+------------+-----------+-----------------+-----------+-----------+
+| Alexis Tara Larsen      | National      |    200 |        400 |         2 |        211.8000 |       200 |       200 |
+| Alexis Tara Larsen      | Regional      |    200 |        400 |         2 |        149.6667 |       200 |       200 |
+| David Michael Harrison  | Local         |     70 |        400 |         2 |         70.0000 |       330 |        70 |
+| David Michael Harrison  | National      |    330 |        400 |         2 |        211.8000 |       330 |        70 |
+| Dominick Tom Jameson    | International |    300 |        300 |         1 |        199.7500 |       300 |       300 |
+| Kathleen Anne Hamilton  | National      |     99 |         99 |         1 |        211.8000 |        99 |        99 |
+| Rebecca Lauren Williams | International |    100 |        250 |         2 |        199.7500 |       150 |       100 |
+| Rebecca Lauren Williams | Regional      |    150 |        250 |         2 |        149.6667 |       150 |       100 |
+| Richard Thomas Anderson | Regional      |     99 |         99 |         1 |        149.6667 |        99 |        99 |
+| Ross Max Booth          | International |     99 |         99 |         1 |        199.7500 |        99 |        99 |
+| Susan Jane Morris       | National      |    330 |        330 |         1 |        211.8000 |       330 |       330 |
+| Vincent Justin Maxwell  | International |    300 |        400 |         2 |        199.7500 |       300 |       100 |
+| Vincent Justin Maxwell  | National      |    100 |        400 |         2 |        211.8000 |       300 |       100 |
++-------------------------+---------------+--------+------------+-----------+-----------------+-----------+-----------+
+```
+
+* **Analytic Functions**
+
+```sql
+SELECT flName, Competition.compType, result,
+CUME_DIST() OVER(ORDER BY compType) AS 'Cume_Dist',
+PERCENT_RANK() OVER(ORDER BY compType) AS 'Percent_Rank'
+FROM Participation
+JOIN Sportsmen ON Sportsmen.id = Participation.sportsman
+JOIN Competition ON Competition.id = Participation.competition;
+```
+Output:
+```
++-------------------------+---------------+--------+---------------------+--------------+
+| flName                  | compType      | result | Cume_Dist           | Percent_Rank |
++-------------------------+---------------+--------+---------------------+--------------+
+| Dominick Tom Jameson    | International |    300 |  0.2857142857142857 |            0 |
+| Ross Max Booth          | International |     99 |  0.2857142857142857 |            0 |
+| Vincent Justin Maxwell  | International |    300 |  0.2857142857142857 |            0 |
+| Rebecca Lauren Williams | International |    100 |  0.2857142857142857 |            0 |
+| Vincent Justin Maxwell  | International |    300 |  0.2857142857142857 |            0 |
+| Rebecca Lauren Williams | International |    100 |  0.2857142857142857 |            0 |
+| David Michael Harrison  | Local         |     70 | 0.38095238095238093 |          0.3 |
+| David Michael Harrison  | Local         |     70 | 0.38095238095238093 |          0.3 |
+| Kathleen Anne Hamilton  | National      |     99 |  0.7619047619047619 |          0.4 |
+| Susan Jane Morris       | National      |    330 |  0.7619047619047619 |          0.4 |
+| Alexis Tara Larsen      | National      |    200 |  0.7619047619047619 |          0.4 |
+| David Michael Harrison  | National      |    330 |  0.7619047619047619 |          0.4 |
+| Vincent Justin Maxwell  | National      |    100 |  0.7619047619047619 |          0.4 |
+| Alexis Tara Larsen      | National      |    200 |  0.7619047619047619 |          0.4 |
+| David Michael Harrison  | National      |    330 |  0.7619047619047619 |          0.4 |
+| Vincent Justin Maxwell  | National      |    100 |  0.7619047619047619 |          0.4 |
+| Richard Thomas Anderson | Regional      |     99 |                   1 |          0.8 |
+| Rebecca Lauren Williams | Regional      |    150 |                   1 |          0.8 |
+| Alexis Tara Larsen      | Regional      |    200 |                   1 |          0.8 |
+| Rebecca Lauren Williams | Regional      |    150 |                   1 |          0.8 |
+| Alexis Tara Larsen      | Regional      |    200 |                   1 |          0.8 |
++-------------------------+---------------+--------+---------------------+--------------+
+21 rows in set (0.01 sec)
+```
+
+* **Ranking functions**
+
+```sql
+SELECT flName, Competition.compType, result,
+RANK() OVER(PARTITION BY flName ORDER BY result) AS 'Rank'
+FROM Participation
+JOIN Sportsmen ON Sportsmen.id = Participation.sportsman
+JOIN Competition ON Competition.id = Participation.competition;
+```
+Output:
+```
++-------------------------+---------------+--------+------+
+| flName                  | compType      | result | Rank |
++-------------------------+---------------+--------+------+
+| Alexis Tara Larsen      | National      |    200 |    1 |
+| Alexis Tara Larsen      | Regional      |    200 |    1 |
+| Alexis Tara Larsen      | National      |    200 |    1 |
+| Alexis Tara Larsen      | Regional      |    200 |    1 |
+| David Michael Harrison  | Local         |     70 |    1 |
+| David Michael Harrison  | Local         |     70 |    1 |
+| David Michael Harrison  | National      |    330 |    3 |
+| David Michael Harrison  | National      |    330 |    3 |
+| Dominick Tom Jameson    | International |    300 |    1 |
+| Kathleen Anne Hamilton  | National      |     99 |    1 |
+| Rebecca Lauren Williams | International |    100 |    1 |
+| Rebecca Lauren Williams | International |    100 |    1 |
+| Rebecca Lauren Williams | Regional      |    150 |    3 |
+| Rebecca Lauren Williams | Regional      |    150 |    3 |
+| Richard Thomas Anderson | Regional      |     99 |    1 |
+| Ross Max Booth          | International |     99 |    1 |
+| Susan Jane Morris       | National      |    330 |    1 |
+| Vincent Justin Maxwell  | National      |    100 |    1 |
+| Vincent Justin Maxwell  | National      |    100 |    1 |
+| Vincent Justin Maxwell  | International |    300 |    3 |
+| Vincent Justin Maxwell  | International |    300 |    3 |
++-------------------------+---------------+--------+------+
+21 rows in set (0.00 sec)
+```
+
+With repeated results of one sportsman:
+
+```sql
+SELECT flName, Competition.compType, result,
+RANK() OVER(PARTITION BY flName ORDER BY result) AS 'Rank',
+DENSE_RANK() OVER(PARTITION BY flName ORDER BY result) AS 'Dense_Rank'
+FROM Participation
+JOIN Sportsmen ON Sportsmen.id = Participation.sportsman
+JOIN Competition ON Competition.id = Participation.competition;
+```
+Output:
+```
++-------------------------+---------------+--------+------+------------+
+| flName                  | compType      | result | Rank | Dense_Rank |
++-------------------------+---------------+--------+------+------------+
+| Alexis Tara Larsen      | National      |    200 |    1 |          1 |
+| Alexis Tara Larsen      | Regional      |    200 |    1 |          1 |
+| Alexis Tara Larsen      | National      |    200 |    1 |          1 |
+| Alexis Tara Larsen      | Regional      |    200 |    1 |          1 |
+| David Michael Harrison  | Local         |     70 |    1 |          1 |
+| David Michael Harrison  | Local         |     70 |    1 |          1 |
+| David Michael Harrison  | National      |    330 |    3 |          2 |
+| David Michael Harrison  | National      |    330 |    3 |          2 |
+| Dominick Tom Jameson    | International |    300 |    1 |          1 |
+| Kathleen Anne Hamilton  | National      |     99 |    1 |          1 |
+| Rebecca Lauren Williams | International |    100 |    1 |          1 |
+| Rebecca Lauren Williams | International |    100 |    1 |          1 |
+| Rebecca Lauren Williams | Regional      |    150 |    3 |          2 |
+| Rebecca Lauren Williams | Regional      |    150 |    3 |          2 |
+| Richard Thomas Anderson | Regional      |     99 |    1 |          1 |
+| Ross Max Booth          | International |     99 |    1 |          1 |
+| Susan Jane Morris       | National      |    330 |    1 |          1 |
+| Vincent Justin Maxwell  | National      |    100 |    1 |          1 |
+| Vincent Justin Maxwell  | National      |    100 |    1 |          1 |
+| Vincent Justin Maxwell  | International |    300 |    3 |          2 |
+| Vincent Justin Maxwell  | International |    300 |    3 |          2 |
++-------------------------+---------------+--------+------+------------+
+21 rows in set (0.00 sec)
+```
+
 
 
 <br/>  
