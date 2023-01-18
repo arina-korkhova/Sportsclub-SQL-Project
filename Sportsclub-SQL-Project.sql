@@ -372,3 +372,64 @@ JOIN Sportsmen ON Sportsmen.id = Participation.sportsman
 JOIN Competition ON Competition.id = Participation.competition;
 
 EXPLAIN SELECT * FROM v_name_comp;
+
+
+-- window functions
+
+INSERT INTO Participation (competition, sportsman, result, place) VALUES 
+	(1, 11, 300, 1),
+	(1, 12, 100, NULL),
+	(2, 13, 200, 2),
+	(2, 14, 330, 1),
+	(2, 11, 100, 3),
+	(3, 12, 150, 2),
+	(3, 13, 200, 1),
+	(4, 14, 70, NULL);
+
+SELECT * FROM Participation;
+
+
+SELECT competition, sportsman, result,
+	COUNT(competition) OVER(PARTITION BY sportsman) AS 'CompAmount'
+FROM Participation;
+
+
+SELECT *,
+       COUNT(Competition) OVER(PARTITION BY Name) AS 'CompAmount'
+FROM v_name_comp;
+
+
+SELECT  flName, Competition.compType, result,
+		SUM(result) OVER(PARTITION BY flName) AS 'ResultsSum',
+		COUNT(Competition.compType) OVER(PARTITION BY sportsman) AS 'CompCount',
+		AVG(result) OVER(PARTITION BY compType) AS 'AvgResultInComp',
+		MAX(result) OVER(PARTITION BY flName) AS 'MaxResult',
+		MIN(result) OVER(PARTITION BY flName) AS 'MinResult'
+FROM Participation
+JOIN Sportsmen ON Sportsmen.id = Participation.sportsman
+JOIN Competition ON Competition.id = Participation.competition
+ORDER BY flName;
+
+
+SELECT flName, Competition.compType, result,
+CUME_DIST() OVER(ORDER BY compType) AS 'Cume_Dist',
+PERCENT_RANK() OVER(ORDER BY compType) AS 'Percent_Rank'
+FROM Participation
+JOIN Sportsmen ON Sportsmen.id = Participation.sportsman
+JOIN Competition ON Competition.id = Participation.competition;
+
+
+SELECT flName, Competition.compType, result,
+RANK() OVER(PARTITION BY flName ORDER BY result) AS 'Rank'
+FROM Participation
+JOIN Sportsmen ON Sportsmen.id = Participation.sportsman
+JOIN Competition ON Competition.id = Participation.competition;
+
+
+SELECT flName, Competition.compType, result,
+RANK() OVER(PARTITION BY flName ORDER BY result) AS 'Rank',
+DENSE_RANK() OVER(PARTITION BY flName ORDER BY result) AS 'Dense_Rank'
+FROM Participation
+JOIN Sportsmen ON Sportsmen.id = Participation.sportsman
+JOIN Competition ON Competition.id = Participation.competition;
+
