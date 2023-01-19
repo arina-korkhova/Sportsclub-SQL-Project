@@ -433,3 +433,70 @@ FROM Participation
 JOIN Sportsmen ON Sportsmen.id = Participation.sportsman
 JOIN Competition ON Competition.id = Participation.competition;
 
+
+-- Stored Procedures and Functions. Triggers. Cursors
+
+DELIMITER $$
+CREATE FUNCTION amount (srate INT) RETURNS INT
+DETERMINISTIC
+BEGIN
+DECLARE amount INT DEFAULT 0;
+SELECT COUNT(*) AS Amount
+INTO amount FROM Sportsmen
+WHERE rate = srate;
+RETURN amount;
+END $$
+SELECT amount(1900);
+
+
+DELIMITER $$
+CREATE PROCEDURE sportsman_participation (sportsman_name VARCHAR(40))
+BEGIN
+SELECT p.id, s.flName, c.compType, p.result
+FROM Participation AS p
+INNER JOIN Sportsmen AS s
+        ON s.id = p.sportsman
+INNER JOIN Competition AS c
+        ON c.id = p.competition
+WHERE s.flName = sportsman_name;
+END $$
+
+DELIMITER ;
+
+call sportsman_participation('Rebecca Lauren Williams');
+
+
+DELIMITER $$
+CREATE PROCEDURE sportsman_max_result (sportsman_name VARCHAR(40), 
+                                       OUT max_res INT)
+BEGIN
+SELECT MAX(p.result) INTO max_res
+FROM Participation AS p
+INNER JOIN Sportsmen AS s
+        ON s.id = p.sportsman
+WHERE s.flName = sportsman_name;
+END $$
+
+DELIMITER ;
+
+CALL sportsman_max_result('Rebecca Lauren Williams', @x);
+SELECT @x;
+
+
+DELIMITER $$
+CREATE PROCEDURE sp_tr()
+BEGIN
+DECLARE tr_id INT;
+DECLARE done INT DEFAULT TRUE;
+DECLARE cur1 CURSOR FOR SELECT id FROM Sportsmen;
+DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = FALSE;
+OPEN cur1;
+WHILE done DO FETCH cur1 INTO tr_id;
+SELECT flName, trainer FROM Sportsmen WHERE trainer = tr_id;
+END WHILE;
+CLOSE cur1;
+END $$
+
+DELIMITER ;
+
+CALL sp_tr();
