@@ -16,6 +16,7 @@
     - [Many-to-many relationship](#many-to-many-relationship)
     - [Implementation of the external level of database display using VIEW](#implementation-of-the-external-level-of-database-display-using-view)
     - [Window functions](#window-functions)
+    - [Stored Procedures and Functions. Triggers. Cursors](#stored-procedures-and-functions-triggers-cursors)
 
 ### Introduction
 I have created a sportsclub database, which contains four tables: `Trainers`, `Sportsmen`, `Competition`, `Participation`.
@@ -1585,6 +1586,166 @@ Output:
 ```
 
 
+### Stored Procedures and Functions. Triggers. Cursors
+
+* **Create a stored function with a parameter**
+
+The stored function takes a rating and returns the number of people with that rating.
+
+```sql
+DELIMITER $$
+CREATE FUNCTION amount (srate INT) RETURNS INT
+DETERMINISTIC
+BEGIN
+DECLARE amount INT DEFAULT 0;
+SELECT COUNT(*) AS Amount
+INTO amount FROM Sportsmen
+WHERE rate = srate;
+RETURN amount;
+END $$
+
+SELECT amount(1900);
+```
+Output:
+```
++--------------+
+| amount(1900) |
++--------------+
+|            2 |
++--------------+
+```
+
+* **Create stored procedure with input parameter**
+
+The procedure displays the list of Participations of an athlete in competitions, whose name is passed to the procedure via a parameter.
+
+```sql
+DELIMITER $$
+CREATE PROCEDURE sportsman_participation (sportsman_name VARCHAR(40))
+BEGIN
+SELECT p.id, s.flName, c.compType, p.result
+FROM Participation AS p
+INNER JOIN Sportsmen AS s
+        ON s.id = p.sportsman
+INNER JOIN Competition AS c
+        ON c.id = p.competition
+WHERE s.flName = sportsman_name;
+END $$
+
+DELIMITER ;
+
+call sportsman_participation('Rebecca Lauren Williams');
+```
+Output:
+```
++----+-------------------------+---------------+--------+
+| id | flName                  | compType      | result |
++----+-------------------------+---------------+--------+
+| 12 | Rebecca Lauren Williams | International |    100 |
+| 16 | Rebecca Lauren Williams | Regional      |    150 |
++----+-------------------------+---------------+--------+
+```
+
+* **Create a stored procedure with input and output parameters**
+
+The procedure finds the athlete's maximum result.
+
+```sql
+DELIMITER $$
+CREATE PROCEDURE sportsman_max_result (sportsman_name VARCHAR(40), 
+                                       OUT max_res INT)
+BEGIN
+SELECT MAX(p.result) INTO max_res
+FROM Participation AS p
+INNER JOIN Sportsmen AS s
+        ON s.id = p.sportsman
+WHERE s.flName = sportsman_name;
+END $$
+
+DELIMITER ;
+
+CALL sportsman_max_result('Rebecca Lauren Williams', @x);
+SELECT @x;
+```
+Output:
+```
++------+
+| @x   |
++------+
+|  150 |
++------+
+```
+
+* **Create procedure with cursor**
+
+The `sp_tr` procedure with the `cur1` cursor produces tables with the names of athletes and their coaches.
+
+```sql
+DELIMITER $$
+CREATE PROCEDURE sp_tr()
+BEGIN
+DECLARE tr_id INT;
+DECLARE done INT DEFAULT TRUE;
+DECLARE cur1 CURSOR FOR SELECT id FROM Sportsmen;
+DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = FALSE;
+OPEN cur1;
+WHILE done DO FETCH cur1 INTO tr_id;
+SELECT flName, trainer FROM Sportsmen WHERE trainer = tr_id;
+END WHILE;
+CLOSE cur1;
+END $$
+
+DELIMITER ;
+
+CALL sp_tr();
+```
+Output:
+```
++------------------------+---------+
+| flName                 | trainer |
++------------------------+---------+
+| Dominick Tom Jameson   |       1 |
+| Samantha Beth Hamilton |       1 |
++------------------------+---------+
+
++-------------------------+---------+
+| flName                  | trainer |
++-------------------------+---------+
+| Steven Jack Ball        |       2 |
+| Melissa Kira Pittman    |       2 |
+| Rebecca Lauren Williams |       2 |
+| David Michael Harrison  |       2 |
++-------------------------+---------+
+
++-------------------------+---------+
+| flName                  | trainer |
++-------------------------+---------+
+| Kimberly Maria Perez    |       3 |
+| Richard Thomas Anderson |       3 |
++-------------------------+---------+
+
++------------------------+---------+
+| flName                 | trainer |
++------------------------+---------+
+| Richard Frank Jones    |       4 |
+| Vincent Justin Maxwell |       4 |
+| Alexis Tara Larsen     |       4 |
++------------------------+---------+
+
++--------------------+---------+
+| flName             | trainer |
++--------------------+---------+
+| Ross Max Booth     |       5 |
+| Jackson Evan Smith |       5 |
++--------------------+---------+
+
++------------------------+---------+
+| flName                 | trainer |
++------------------------+---------+
+| Kathleen Anne Hamilton |       6 |
+| Susan Jane Morris      |       6 |
++------------------------+---------+
+```
 
 <br/>  
 <p align="center"><a href="#sportsclub-sql-project"><img src="https://github.com/arina-korkhova/Sportsclub-SQL-Project/blob/main/images/backToTopButton.png" alt="Back to top" height="29"/></a></p>
